@@ -29,8 +29,9 @@ export default function StockIn() {
   const fetchStockIns = async () => {
     setLoading(true);
     try {
-      const response = await api.get('/stock');
-      setStockIns(Array.isArray(response.data) ? response.data : []);
+      const response = await api.get('/stock/stockin');
+      const data = Array.isArray(response.data) ? response.data : response.data?.stockIns;
+      setStockIns(Array.isArray(data) ? data : []);
     } catch (error) {
       toast.error('Failed to fetch stock entries');
       setStockIns([]);
@@ -52,7 +53,8 @@ export default function StockIn() {
   const fetchSuppliers = async () => {
     try {
       const response = await api.get('/suppliers');
-      setSuppliers(Array.isArray(response.data) ? response.data : []);
+      const data = Array.isArray(response.data) ? response.data : response.data?.suppliers;
+      setSuppliers(Array.isArray(data) ? data : []);
     } catch (error) {
       toast.error('Failed to fetch suppliers');
       setSuppliers([]);
@@ -69,7 +71,13 @@ export default function StockIn() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await api.post('/stock', formData);
+      await api.post('/stock/stockin', {
+        material: formData.materialId,
+        supplier: formData.supplierId,
+        quantity: Number(formData.quantity),
+        unitPrice: Number(formData.unitPrice),
+        date: formData.date
+      });
       toast.success('Stock in recorded successfully');
       setShowModal(false);
       resetForm();
@@ -102,12 +110,12 @@ export default function StockIn() {
     },
     { 
       header: 'Material', 
-      accessor: 'materialId',
+      accessor: 'material',
       render: (value) => value?.materialName || 'N/A'
     },
     { 
       header: 'Supplier', 
-      accessor: 'supplierId',
+      accessor: 'supplier',
       render: (value) => value?.supplierName || 'N/A'
     },
     { 

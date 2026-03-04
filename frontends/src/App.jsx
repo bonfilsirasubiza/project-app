@@ -7,6 +7,7 @@ import { AuthProvider } from './context/AuthContext';
 import Login from './pages/Login';
 import RawMaterial from './pages/RawMaterial';
 import StockIn from './pages/StockIn';
+import StockOut from './pages/StockOut';
 import Supplier from './pages/Suppliers';
 import Reports from './pages/Reports';
 import NotFound from './pages/NotFound';
@@ -32,6 +33,7 @@ function App() {
               <Route index element={<Navigate to="/raw-material" replace />} />
               <Route path="raw-material" element={<RawMaterial />} />
               <Route path="stock-in" element={<StockIn />} />
+              <Route path="stock-out" element={<StockOut />} />
               <Route path="suppliers" element={<Supplier />} />
               <Route path="reports" element={<Reports />} />
             </Route>

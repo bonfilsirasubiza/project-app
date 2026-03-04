@@ -155,7 +155,11 @@ const createStockOut = async (req, res) => {
       return res.status(404).json({ message: 'Material not found' });
     }
 
-    if (materialExists.quantity < quantity) {
+    if (quantity === undefined || Number(quantity) <= 0) {
+      return res.status(400).json({ message: 'Quantity must be greater than 0' });
+    }
+
+    if (materialExists.quantity < Number(quantity)) {
       return res.status(400).json({ 
         message: `Insufficient stock. Available: ${materialExists.quantity} ${materialExists.unit}` 
       });
@@ -163,7 +167,7 @@ const createStockOut = async (req, res) => {
 
     const stockOut = await StockOut.create({
       material,
-      quantity,
+      quantity: Number(quantity),
       date,
       purpose,
       department,
@@ -182,6 +186,12 @@ const createStockOut = async (req, res) => {
     console.error('Create stock out error:', error);
     if (error.name === 'ValidationError') {
       return res.status(400).json({ message: error.message });
+    }
+    if (error.message && error.message.includes('Insufficient stock')) {
+      return res.status(400).json({ message: error.message });
+    }
+    if (error.message && error.message.includes('Material not found')) {
+      return res.status(404).json({ message: error.message });
     }
     res.status(500).json({ message: 'Server error' });
   }

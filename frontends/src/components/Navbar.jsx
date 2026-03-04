@@ -9,7 +9,7 @@ const Navbar = ({ onMenuClick }) => {
   const [showNotifications, setShowNotifications] = useState(false);
 
   return (
-    <nav className="bg-white/80 backdrop-blur border-b border-slate-200/70 px-6 py-4">
+    <nav className="sticky top-0 z-30 bg-white/80 backdrop-blur border-b border-slate-200/70 px-6 py-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
           <button

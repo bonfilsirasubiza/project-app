@@ -63,8 +63,8 @@ stockOutSchema.pre('save', async function(next) {
     if (material.quantity < this.quantity) {
       throw new Error(`Insufficient stock. Available: ${material.quantity} ${material.unit}`);
     }
-    
-    
+
+    next();
   } catch (error) {
     next(error);
   }

@@ -1,26 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { 
-  FiBarChart2, 
-  FiDownload, 
-  FiCalendar,
-  FiPackage,
-  FiTrendingUp,
-  FiAlertCircle
-} from 'react-icons/fi';
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell
-} from 'recharts';
+import React, { useState, useEffect, useMemo } from 'react';
+import { FiCalendar, FiPackage, FiTrendingUp, FiAlertCircle } from 'react-icons/fi';
 import Card from '../components/Card';
 import api from '../services/api';
 import toast from 'react-hot-toast';
@@ -28,13 +7,12 @@ import toast from 'react-hot-toast';
 export default function Reports() {
   const [materials, setMaterials] = useState([]);
   const [stockIns, setStockIns] = useState([]);
+  const [stockOuts, setStockOuts] = useState([]);
   const [dateRange, setDateRange] = useState({
     startDate: new Date(new Date().setDate(new Date().getDate() - 30)).toISOString().split('T')[0],
     endDate: new Date().toISOString().split('T')[0]
   });
   const [loading, setLoading] = useState(false);
-
-  const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
 
   useEffect(() => {
     fetchData();
@@ -43,12 +21,16 @@ export default function Reports() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [materialsRes, stockInsRes] = await Promise.all([
+      const [materialsRes, stockInsRes, stockOutsRes] = await Promise.all([
         api.get('/raw-materials'),
-        api.get('/stock', { params: dateRange })
+        api.get('/stock/stockin', { params: dateRange }),
+        api.get('/stock/stockout', { params: dateRange })
       ]);
-      setMaterials(materialsRes.data);
-      setStockIns(stockInsRes.data);
+      setMaterials(Array.isArray(materialsRes.data) ? materialsRes.data : []);
+      const stockInData = Array.isArray(stockInsRes.data) ? stockInsRes.data : stockInsRes.data?.stockIns;
+      const stockOutData = Array.isArray(stockOutsRes.data) ? stockOutsRes.data : stockOutsRes.data?.stockOuts;
+      setStockIns(Array.isArray(stockInData) ? stockInData : []);
+      setStockOuts(Array.isArray(stockOutData) ? stockOutData : []);
     } catch (error) {
       toast.error('Failed to fetch report data');
     } finally {
@@ -56,34 +38,27 @@ export default function Reports() {
     }
   };
 
-  const handleExport = () => {
-    // Create CSV content
-    const csvContent = [
-      ['Material Name', 'Stored Quantity', 'Issued Quantity', 'Remaining Quantity'].join(','),
-      ...materials.map(m => 
-        [m.materialName, m.quantity, m.issuedQuantity || 0, m.quantity - (m.issuedQuantity || 0)].join(',')
-      )
-    ].join('\n');
+  const stockOutByMaterial = useMemo(() => {
+    const map = new Map();
+    stockOuts.forEach((s) => {
+      const materialId = s.material?._id;
+      if (!materialId) return;
+      map.set(materialId, (map.get(materialId) || 0) + (s.quantity || 0));
+    });
+    return map;
+  }, [stockOuts]);
 
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `stock-report-${dateRange.startDate}-to-${dateRange.endDate}.csv`;
-    a.click();
-  };
-
-  const chartData = materials.map(m => ({
-    name: m.materialName.length > 15 ? m.materialName.substring(0, 15) + '...' : m.materialName,
-    stored: m.quantity,
-    issued: m.issuedQuantity || 0,
-    remaining: m.quantity - (m.issuedQuantity || 0)
-  }));
-
-  const pieData = materials.map(m => ({
-    name: m.materialName,
-    value: m.quantity
-  }));
+  const dailyStatusRows = useMemo(() => {
+    return materials.map((m) => {
+      const issuedQuantity = stockOutByMaterial.get(m._id) || 0;
+      const remainingQuantity = (m.quantity || 0) - issuedQuantity;
+      return {
+        ...m,
+        issuedQuantity,
+        remainingQuantity
+      };
+    });
+  }, [materials, stockOutByMaterial]);
 
   return (
     <div className="space-y-6">
@@ -91,15 +66,8 @@ export default function Reports() {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Reports</h1>
-          <p className="text-slate-500 mt-1">View and analyze inventory data</p>
+          <p className="text-slate-500 mt-1">Daily stock status and stock out report</p>
         </div>
-        <button
-          onClick={handleExport}
-          className="btn-primary flex items-center space-x-2"
-        >
-          <FiDownload />
-          <span>Export Report</span>
-        </button>
       </div>
 
       {/* Date Range Filter */}
@@ -187,54 +155,6 @@ export default function Reports() {
         </Card>
       </div>
 
-      {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Stock Status Chart */}
-        <Card className="p-6">
-          <h2 className="text-lg font-semibold mb-4">Stock Status Overview</h2>
-          <div className="h-80">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" angle={-45} textAnchor="end" height={60} />
-                <YAxis />
-                <Tooltip />
-                <Legend />
-                <Bar dataKey="stored" fill="#3b82f6" name="Stored" />
-                <Bar dataKey="issued" fill="#f59e0b" name="Issued" />
-                <Bar dataKey="remaining" fill="#10b981" name="Remaining" />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </Card>
-
-        {/* Distribution Chart */}
-        <Card className="p-6">
-          <h2 className="text-lg font-semibold mb-4">Material Distribution</h2>
-          <div className="h-80">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={pieData}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  label={(entry) => `${entry.name}: ${entry.value}`}
-                  outerRadius={80}
-                  fill="#8884d8"
-                  dataKey="value"
-                >
-                  {pieData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-        </Card>
-      </div>
-
       {/* Daily Stock Status Report */}
       <Card className="p-6">
         <h2 className="text-lg font-semibold mb-4">Daily Stock Status Report</h2>
@@ -260,8 +180,8 @@ export default function Reports() {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-slate-200">
-              {materials.map((material) => {
-                const remaining = material.quantity - (material.issuedQuantity || 0);
+              {dailyStatusRows.map((material) => {
+                const remaining = material.remainingQuantity;
                 const status = remaining < 10 ? 'Low Stock' : remaining < 20 ? 'Moderate' : 'Sufficient';
                 const statusColor = 
                   status === 'Low Stock' ? 'text-red-600 bg-red-100' :
@@ -320,21 +240,19 @@ export default function Reports() {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-slate-200">
-              {stockIns
-                .filter(s => s.type === 'stock-out')
-                .map((stock, index) => (
+              {stockOuts.map((stock, index) => (
                   <tr key={stock._id || index}>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
                       {new Date(stock.date).toLocaleDateString()}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">
-                      {stock.materialId?.materialName}
+                      {stock.material?.materialName}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
                       {stock.quantity}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
-                      {stock.materialId?.unit}
+                      {stock.material?.unit}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
                       {stock.purpose || 'Production'}

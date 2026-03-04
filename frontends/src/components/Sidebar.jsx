@@ -8,7 +8,8 @@ import {
   FiBarChart2, 
   FiLogOut,
   FiHome,
-  FiX
+  FiX,
+  FiArrowUpRight
 } from 'react-icons/fi';
 import { AuthContext } from '../context/AuthContext';
 
@@ -20,6 +21,7 @@ const Sidebar = ({ isOpen, onClose }) => {
   const menuItems = [
     { path: '/raw-material', name: 'Raw Materials', icon: FiBox },
     { path: '/stock-in', name: 'Stock In', icon: FiPackage },
+    { path: '/stock-out', name: 'Stock Out', icon: FiArrowUpRight },
     { path: '/suppliers', name: 'Suppliers', icon: FiTruck },
     { path: '/reports', name: 'Reports', icon: FiBarChart2 },
   ];

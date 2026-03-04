@@ -45,7 +45,7 @@ const createRawMaterial = async (req, res) => {
     const { materialCode, materialName, unit, quantity, unitPrice } = req.body;
 
     // Validate required fields
-    if (!materialCode || !materialName || !unit || quantity === undefined || !unitPrice) {
+    if (!materialCode || !materialName || !unit || quantity === undefined || unitPrice === undefined) {
       return res.status(400).json({ message: 'All fields are required' });
     }
 

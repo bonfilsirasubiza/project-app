@@ -27,8 +27,8 @@ export default function Supplier() {
     setLoading(true);
     try {
       const response = await api.get('/suppliers');
-      // Ensure we always set an array
-      setSuppliers(Array.isArray(response.data) ? response.data : []);
+      const data = Array.isArray(response.data) ? response.data : response.data?.suppliers;
+      setSuppliers(Array.isArray(data) ? data : []);
     } catch (error) {
       toast.error('Failed to fetch suppliers');
       setSuppliers([]); // Set empty array on error

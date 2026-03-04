@@ -48,7 +48,7 @@ const getSupplierById = async (req, res) => {
   try {
     const supplier = await Supplier.findById(req.params.id);
     
-    if (!supplier) {
+    if (!supplier || !supplier.isActive) {
       return res.status(404).json({ message: 'Supplier not found' });
     }
     
@@ -70,17 +70,20 @@ const createSupplier = async (req, res) => {
     const { supplierCode, supplierName, phoneNumber, email, address, contactPerson, taxId, paymentTerms, notes } = req.body;
 
     // Check if supplier code already exists
-    const existingSupplier = await Supplier.findOne({ supplierCode });
+    const normalizedCode = supplierCode ? supplierCode.toUpperCase().trim() : supplierCode;
+    const normalizedEmail = email && email.trim() !== '' ? email.trim() : undefined;
+    const normalizedAddress = address && address.trim() !== '' ? address.trim() : undefined;
+    const existingSupplier = await Supplier.findOne({ supplierCode: normalizedCode, isActive: true });
     if (existingSupplier) {
       return res.status(400).json({ message: 'Supplier code already exists' });
     }
 
     const supplier = await Supplier.create({
-      supplierCode,
-      supplierName,
-      phoneNumber,
-      email,
-      address,
+      supplierCode: normalizedCode,
+      supplierName: supplierName?.trim(),
+      phoneNumber: phoneNumber?.trim(),
+      email: normalizedEmail,
+      address: normalizedAddress,
       contactPerson,
       taxId,
       paymentTerms,
@@ -104,14 +107,18 @@ const updateSupplier = async (req, res) => {
   try {
     const supplier = await Supplier.findById(req.params.id);
 
-    if (!supplier) {
+    if (!supplier || !supplier.isActive) {
       return res.status(404).json({ message: 'Supplier not found' });
     }
 
     // Check if supplier code is being changed and if it already exists
-    if (req.body.supplierCode && req.body.supplierCode !== supplier.supplierCode) {
+    const incomingCode = req.body.supplierCode ? req.body.supplierCode.toUpperCase().trim() : null;
+    const incomingEmail = req.body.email && req.body.email.trim() !== '' ? req.body.email.trim() : undefined;
+    const incomingAddress = req.body.address && req.body.address.trim() !== '' ? req.body.address.trim() : undefined;
+    if (incomingCode && incomingCode !== supplier.supplierCode) {
       const existingSupplier = await Supplier.findOne({ 
-        supplierCode: req.body.supplierCode,
+        supplierCode: incomingCode,
+        isActive: true,
         _id: { $ne: supplier._id }
       });
       if (existingSupplier) {
@@ -121,7 +128,14 @@ const updateSupplier = async (req, res) => {
 
     const updatedSupplier = await Supplier.findByIdAndUpdate(
       req.params.id,
-      req.body,
+      {
+        ...req.body,
+        supplierCode: incomingCode || supplier.supplierCode,
+        supplierName: req.body.supplierName?.trim() || supplier.supplierName,
+        phoneNumber: req.body.phoneNumber?.trim() || supplier.phoneNumber,
+        email: incomingEmail === undefined ? supplier.email : incomingEmail,
+        address: incomingAddress === undefined ? supplier.address : incomingAddress
+      },
       { new: true, runValidators: true }
     );
 

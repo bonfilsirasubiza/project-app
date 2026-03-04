@@ -2,6 +2,7 @@ import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import Login from './pages/Login';
 import RawMaterial from './pages/RawMaterial';
 import StockIn from './pages/StockIn';
+import StockOut from './pages/StockOut';
 import Supplier from './pages/Suppliers';
 import Reports from './pages/Reports';
 import NotFound from './pages/NotFound';
@@ -19,6 +20,7 @@ const router = createBrowserRouter([
       { index: true, element: <RawMaterial /> },
       { path: 'raw-material', element: <RawMaterial /> },
       { path: 'stock-in', element: <StockIn /> },
+      { path: 'stock-out', element: <StockOut /> },
       { path: 'suppliers', element: <Supplier /> },
       { path: 'reports', element: <Reports /> },
     ],

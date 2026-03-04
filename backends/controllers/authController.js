@@ -14,6 +14,11 @@ const registerUser = async (req, res) => {
 // @access  Public
 const loginUser = async (req, res) => {
   try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ message: errors.array()[0]?.msg || 'Invalid login data' });
+    }
+
     const { email, password } = req.body;
     const allowedEmail = process.env.ADMIN_EMAIL || 'admin@gmail.com';
     const allowedPassword = process.env.ADMIN_PASSWORD || '123456';
